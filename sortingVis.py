@@ -39,7 +39,7 @@ class DrawInformation:
         self.block_height = math.floor((self.height - self.TOP_PAD) / (self.max_val - self.min_val))
         self.start_x = self.SIDE_PAD // 2
 
-def draw(draw_info, algo_name, ascending):
+def draw(draw_info, algo_name, ascending, speed):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
 
     title = draw_info.LARGE_FONT.render(f"{algo_name} - {'Ascending' if ascending else 'Descending'}", 1, draw_info.BLUE)
@@ -50,6 +50,9 @@ def draw(draw_info, algo_name, ascending):
 
     sorting = draw_info.FONT.render("I - InsertionSort | B - BubbleSort | S - Selection Sort", 1, draw_info.BLACK)
     draw_info.window.blit(sorting, (draw_info.width/2 - sorting.get_width()/2, 75))
+
+    speedometer = draw_info.FONT.render("+ - Speed Up | '-' - Speed Down | Current Speed: " + str(speed), 1, draw_info.BLACK)
+    draw_info.window.blit(speedometer, (draw_info.width/2 - sorting.get_width()/2, 105))
 
     draw_list(draw_info)
     pygame.display.update()
@@ -141,6 +144,7 @@ def main():
     n = 50
     min_val = 0
     max_val = 100
+    speed = 60
 
     lst = generate_starting_list(n, min_val, max_val)
     draw_info = DrawInformation(800, 600, lst)
@@ -152,15 +156,16 @@ def main():
     sorting_algorithm_generator = None
 
     while run:
-        clock.tick(60)
-
         if sorting:
+            clock.tick(speed)
             try:
                 next(sorting_algorithm_generator)
             except StopIteration:
                 sorting = False
         else:
-            draw(draw_info, sorting_algo_name, ascending)
+            draw(draw_info, sorting_algo_name, ascending, speed)
+
+        clock.tick(60)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -170,6 +175,7 @@ def main():
                 continue
 
             if event.key == pygame.K_r:
+                clock.tick(60)
                 sorting = False
                 lst = generate_starting_list(n, min_val, max_val)
                 draw_info.set_list(lst)
@@ -189,6 +195,20 @@ def main():
             elif event.key == pygame.K_s and not sorting:
                 sorting_algorithm = selection_sort
                 sorting_algo_name = "Selection Sort"
+            elif pygame.key.get_pressed()[pygame.K_LSHIFT or pygame.K_RSHIFT] and pygame.key.get_pressed()[pygame.K_EQUALS] and not sorting:
+                if speed >= 190:
+                    speed = 200
+                elif speed <= 9:
+                    speed = 10
+                else:
+                    speed += 10
+            elif event.key == pygame.K_MINUS and not sorting:
+                if speed <= 10:
+                    speed = 1
+                else:
+                    speed -= 10
+
+                        
 
     
     pygame.quit()
