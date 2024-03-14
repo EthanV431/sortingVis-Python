@@ -1,6 +1,7 @@
 import random
 import pygame
 import math
+import asyncio
 pygame.init()
 
 class DrawInformation:
@@ -18,7 +19,7 @@ class DrawInformation:
         (192, 192, 192)
     ]
 
-    FONT = pygame.font.SysFont('comicsans', 30)
+    FONT = pygame.font.SysFont('comicsans', 25)
     LARGE_FONT = pygame.font.SysFont('comicsans', 40)
     SIDE_PAD = 100
     TOP_PAD = 150
@@ -39,7 +40,7 @@ class DrawInformation:
         self.block_height = math.floor((self.height - self.TOP_PAD) / (self.max_val - self.min_val))
         self.start_x = self.SIDE_PAD // 2
 
-def draw(draw_info, algo_name, ascending, speed):
+def draw(draw_info, algo_name, ascending, speed, time = 0):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
 
     title = draw_info.LARGE_FONT.render(f"{algo_name} - {'Ascending' if ascending else 'Descending'}", 1, draw_info.BLUE)
@@ -48,11 +49,14 @@ def draw(draw_info, algo_name, ascending, speed):
     controls = draw_info.FONT.render("R - Reset | SPACE - Start Sorting | A - Ascending | D - Descending", 1, draw_info.BLACK)
     draw_info.window.blit(controls, (draw_info.width/2 - controls.get_width()/2, 45))
 
-    sorting = draw_info.FONT.render("I - InsertionSort | B - BubbleSort | S - Selection Sort", 1, draw_info.BLACK)
+    sorting = draw_info.FONT.render("I - InsertionSort | B - BubbleSort | S - Selection Sort | M - Merge Sort", 1, draw_info.BLACK)
     draw_info.window.blit(sorting, (draw_info.width/2 - sorting.get_width()/2, 75))
 
     speedometer = draw_info.FONT.render("+ - Speed Up | '-' - Speed Down | Current Speed: " + str(speed), 1, draw_info.BLACK)
     draw_info.window.blit(speedometer, (draw_info.width/2 - sorting.get_width()/2, 105))
+
+    timer = draw_info.FONT.render("Time elapsed: " + str(time/1000.0) + " seconds", 1, draw_info.BLACK)
+    draw_info.window.blit(timer, (draw_info.width/2 - sorting.get_width()/2, 135))
 
     draw_list(draw_info)
     pygame.display.update()
@@ -130,16 +134,95 @@ def selection_sort(draw_info, ascending = True):
         for j in range(i + 1, len(lst)):
             if (lst[j] < lst[current] and ascending) or (lst[j] > lst[current] and not ascending):
                 current = j
-            draw_list(draw_info, {i: draw_info.GREEN, current: draw_info.RED, j: draw_info.RED}, True)
+            draw_list(draw_info, {i: draw_info.GREEN, current: draw_info.BLUE, j: draw_info.RED}, True)
             yield True
         lst[i], lst[current] = lst[current], lst[i]
 
     return lst
 
+def merge(draw_info, lst, left_start, left_end, right_start, right_end, ascending):
+    i = left_start
+    j = right_start
+    temp = []
+    pygame.event.pump()
+    if ascending:
+        while i <= left_end and j <= right_end:
+            draw_list(draw_info, {i: draw_info.RED, j: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE, j: draw_info.BLUE}, True)
+            yield True
+            if lst[i] < lst[j]:
+                temp.append(lst[i])
+                i += 1
+            else:
+                temp.append(lst[j])
+                j+= 1
+        while i <= left_end:
+            draw_list(draw_info, {i: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE}, True)
+            yield True
+            temp.append(lst[i])
+            i += 1
+        while j <= right_end:
+            draw_list(draw_info, {i: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE}, True)
+            yield True
+            temp.append(lst[j])
+            j += 1
+    else:
+        while i <= left_end and j <= right_end:
+            draw_list(draw_info, {i: draw_info.RED, j: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE, j: draw_info.BLUE}, True)
+            yield True
+            if lst[i] > lst[j]:
+                temp.append(lst[i])
+                i += 1
+            else:
+                temp.append(lst[j])
+                j+= 1
+        while i <= left_end:
+            draw_list(draw_info, {i: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE}, True)
+            yield True
+            temp.append(lst[i])
+            i += 1
+        while j <= right_end:
+            draw_list(draw_info, {i: draw_info.RED}, True)
+            yield True
+            draw_list(draw_info, {i: draw_info.BLUE}, True)
+            yield True
+            temp.append(lst[j])
+            j += 1
+    j = 0
+    for i in range(left_start, right_end + 1):
+        pygame.event.pump()
+        lst[i] = temp[j]
+        j += 1
+        draw_list(draw_info, {i: draw_info.GREEN}, True)
+        yield True
+
+def merge_sort(draw_info, lst, l, r, ascending = True):
+    mid = (l + r) // 2
+    if l < r:   
+        yield from merge_sort(draw_info, lst, l, mid, ascending)    
+        yield from merge_sort(draw_info, lst, mid + 1, r, ascending)
+        yield from merge(draw_info, lst, l, mid, mid + 1, r, ascending)
+
+    yield True
+    return
+
+
+        
 
 def main():
     run = True
     clock = pygame.time.Clock()
+    current_ticks = 0
+    sort_ticks = 0
 
     n = 50
     min_val = 0
@@ -158,14 +241,15 @@ def main():
     while run:
         if sorting:
             clock.tick(speed)
+            sort_ticks = pygame.time.get_ticks() - current_ticks
             try:
                 next(sorting_algorithm_generator)
             except StopIteration:
                 sorting = False
         else:
-            draw(draw_info, sorting_algo_name, ascending, speed)
-
-        clock.tick(60)
+            clock.tick(60)
+            draw(draw_info, sorting_algo_name, ascending, speed, sort_ticks)
+            current_ticks = pygame.time.get_ticks()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -181,7 +265,10 @@ def main():
                 draw_info.set_list(lst)
             elif event.key == pygame.K_SPACE and sorting == False:
                 sorting = True
-                sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
+                if(sorting_algorithm == merge_sort):
+                    sorting_algorithm_generator = sorting_algorithm(draw_info, draw_info.lst, 0, len(draw_info.lst) - 1, ascending)
+                else:
+                    sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
             elif event.key == pygame.K_a and not sorting:
                 ascending = True
             elif event.key == pygame.K_d and not sorting:
@@ -195,6 +282,9 @@ def main():
             elif event.key == pygame.K_s and not sorting:
                 sorting_algorithm = selection_sort
                 sorting_algo_name = "Selection Sort"
+            elif event.key == pygame.K_m and not sorting:
+                sorting_algorithm = merge_sort
+                sorting_algo_name = "Merge Sort"
             elif pygame.key.get_pressed()[pygame.K_LSHIFT or pygame.K_RSHIFT] and pygame.key.get_pressed()[pygame.K_EQUALS] and not sorting:
                 if speed >= 190:
                     speed = 200
@@ -214,6 +304,7 @@ def main():
     pygame.quit()
 
 if __name__ == "__main__":
+    #asyncio.run(main())
     main()
 
 
