@@ -257,42 +257,44 @@ def main():
             
             if event.type != pygame.KEYDOWN:
                 continue
-
+            
             if event.key == pygame.K_r:
                 clock.tick(60)
                 sorting = False
                 lst = generate_starting_list(n, min_val, max_val)
                 draw_info.set_list(lst)
-            elif event.key == pygame.K_SPACE and sorting == False:
+            elif sorting:
+                continue
+            elif event.key == pygame.K_SPACE:
                 sorting = True
                 if(sorting_algorithm == merge_sort):
                     sorting_algorithm_generator = sorting_algorithm(draw_info, draw_info.lst, 0, len(draw_info.lst) - 1, ascending)
                 else:
                     sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
-            elif event.key == pygame.K_a and not sorting:
+            elif event.key == pygame.K_a:
                 ascending = True
-            elif event.key == pygame.K_d and not sorting:
+            elif event.key == pygame.K_d:
                 ascending = False
-            elif event.key == pygame.K_i and not sorting:
+            elif event.key == pygame.K_i:
                 sorting_algorithm = insertion_sort
                 sorting_algo_name = "Insertion Sort"
-            elif event.key == pygame.K_b and not sorting:
+            elif event.key == pygame.K_b:
                 sorting_algorithm = bubble_sort
                 sorting_algo_name = "Bubble Sort"
-            elif event.key == pygame.K_s and not sorting:
+            elif event.key == pygame.K_s:
                 sorting_algorithm = selection_sort
                 sorting_algo_name = "Selection Sort"
-            elif event.key == pygame.K_m and not sorting:
+            elif event.key == pygame.K_m:
                 sorting_algorithm = merge_sort
                 sorting_algo_name = "Merge Sort"
-            elif pygame.key.get_pressed()[pygame.K_LSHIFT or pygame.K_RSHIFT] and pygame.key.get_pressed()[pygame.K_EQUALS] and not sorting:
+            elif pygame.key.get_pressed()[pygame.K_LSHIFT or pygame.K_RSHIFT] and pygame.key.get_pressed()[pygame.K_EQUALS]:
                 if speed >= 190:
                     speed = 200
                 elif speed <= 9:
                     speed = 10
                 else:
                     speed += 10
-            elif event.key == pygame.K_MINUS and not sorting:
+            elif event.key == pygame.K_MINUS:
                 if speed <= 10:
                     speed = 1
                 else:
